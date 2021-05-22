@@ -4,7 +4,7 @@ Create a react native application, based on provided layout.
 
 All elements of the shared layout should be functional, it's up to you how they will work at the end.
 
-Usage of GIT is required. Create a repository for this task, solution for each STEP should be in a separate branch in your repository 
+Usage of GIT is required. **Create a repository for this task, solution for each STEP should be in a separate branch in your repository**
 
 ### Considerations
 
