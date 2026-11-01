@@ -1,72 +1,129 @@
-# Expo / React Native Developer Test
+# Catalog
 
-Create an Expo / React Native application, based on provided layout.
+Expo product screen for the developer assessment. The layout is [layout/task.png](layout/task.png). Shoppers can browse the shirt, choose a size and color, add it to the bag, and open an account that is already signed in.
 
-All elements of the shared layout should be functional, it's up to you how they will work at the end.
+## Run
 
-### Considerations
+```bash
+npm install
+npm start
+```
 
-- The documentation starting on the README.md file need to be clear
-- We want to see not only the solution but also how you think and your working process, so please keep all your commits accessible and use proper naming standard for them
-- All steps are required so do not skip any. If you don't know, or don't feel comfortable with the required technology, just try your best and commit what you can
-- Each step must be done in a separate branch
+Then open the project in Expo Go, an iOS simulator, or an Android emulator. `npm run web` starts the browser build.
 
-### Required Technology
-- Git
-- TypeScript
-- Expo / React Native
+The catalog URL is `EXPO_PUBLIC_CATALOG_URL` in `.env`. Restart Expo after changing it. The committed value reads `data/catalog.json` from GitHub:
 
-### Layout
+`https://raw.githubusercontent.com/amit-tutu22/react-native-developer/step-3-remote-catalog/data/catalog.json`
 
-You can find layout of our application in `/layout` catalog
+That raw URL stands in for an AWS or GCP bucket. Point the variable at a bucket URL that serves the same JSON if you host the file there. The app fetches it at runtime and does not bundle the file.
 
+## Tests
 
-### STEP 1 
+```bash
+npm test
+```
 
-Create an Expo / React Native application based on `/layout`
+Jest and React Native Testing Library cover the domain rules, the Redux slice, the catalog and account mappers, and the screen flows. The network is replaced with a fake RTK Query base query, so the suite does not call GitHub or the Rick and Morty API. `--forceExit` is part of the script because a React Native animation-frame timer can outlive the assertions after the suite has passed.
 
-We are sharing only one screen, it's up to you how many screens you will create
+### Unit tests
 
-### STEP 2
+- `formatPrice` renders `AED 250`.
+- The default size is M, and the default color is black.
+- The fixture catalog has a title, price, four sizes, four colors, a description, and four related image URLs.
+- The product slice updates size, color, category, a trimmed search query, bag quantity, the lightbox, and the logo reset.
+- `selectFilteredRelated` matches titles without case sensitivity.
+- `selectProductVisible` is true for MEN and false for KIDS when the product is in MEN.
+- `mapCatalog` accepts a full payload, rejects a payload missing title, image URL, price, sizes, colors, or description, and accepts a related item that only has an image URL.
+- `getCatalog` stores the mapped catalog on success and exposes an error with no screen data on failure. Retry issues the request again.
+- `mapCharacter` maps name, image, status, species, gender, origin, and location, and rejects a character missing name or image.
 
-Application must be using a state management system.
+### Functional flows in the suite
 
-Choose a state management library of your liking (redux, redux-saga) and use it in application
+- The product screen shows Tiger Medium Red, AED 250, sizes S M L XL, four colors, the description, and four related images.
+- XL and the forest swatch can be added to the bag, and the count becomes 1.
+- Searching for "blue" leaves the matching thumbnail and hides the others.
+- KIDS shows the empty category state.
+- Expand opens the lightbox and close dismisses it.
+- The account screen shows Rick Sanchez. A failed profile request shows retry and no name.
 
-### STEP 3
+### On a device
 
-All data must come dynamically from API
+Maestro or Detox can run the same journeys against a dev client. They are not required for `npm test`. Scenarios to run on a phone:
 
-Create .json files, structure is up to you. Put some random data. Put files in a remote location (AWS bucket / GCP bucket) and make calls from the app to them.
+- A cold start against the raw GitHub URL shows the live product.
+- A catalog HTTP error shows retry, and a later success replaces the error.
+- Adding the same size and color twice makes the count 2.
+- Opening Account and coming back keeps the size, color, and bag count.
+- When the Rick and Morty API is unreachable, account retry appears and the product screen still loads.
 
-Required data:
-main product data (image URL, title, price, available sizes, colors description)
-see more products (products image URLs)
+## Architecture
 
-### STEP 4
+The UI never calls `fetch`.
 
-Create my account screen
+- `src/domain` holds product, cart, price, and account types, plus pure rules.
+- `src/application/ports` defines `ProductCatalog` and `AccountGateway`.
+- `src/infrastructure` maps remote JSON and owns the RTK Query endpoints. Tests replace `baseQuery` through `configureServices`.
+- `src/presentation` is one component per region of the layout. Screens compose those components.
+- `src/store` keeps category, search, size, color, the bag, and the lightbox in `productUiSlice`. Server data stays in RTK Query.
 
-We don't need an identity system, log-in, registration screens, let's assume a user is already logged in.
-Use [Rick and Morty API](https://rickandmortyapi.com/documentation/#get-a-single-character) to get user data
+### SOLID
 
-### STEP 5
+- Each component does one job. `SizeSelector` reports a size. `formatPrice` formats money. `mapCatalog` turns JSON into domain objects.
+- Sizes, colors, and related products render from arrays. A new color is data, not a new component.
+- The HTTP catalog and the test fake both satisfy the same query boundary, so screens behave the same with either.
+- Catalog and account are separate ports. A selector component receives only the props it renders.
+- Screens depend on hooks and ports. The GitHub URL sits behind `EXPO_PUBLIC_CATALOG_URL`.
 
-Test all the things. Propose how to apply unit and functional tests. Create test scenarios.
+## What the screen does
 
-### STEP 6 (BONUS)
+- Logo returns to MEN, clears search, and closes the lightbox.
+- MEN, WOMEN, KIDS, FTW, and ACCESSORIES filter the catalog. The sample shirt is in MEN. Another category shows an empty state.
+- Search filters the related products by title.
+- The expand control and a related thumbnail open the image lightbox.
+- Black and M start selected. Add to bag records the product, size, and color, and shows the count.
+- Account opens My Account. There is no login screen. The profile is Rick Sanchez from `https://rickandmortyapi.com/api/character/1`.
 
-Use [EAS Build](https://docs.expo.dev/build/introduction/) to build your application for iOS and Android, and publish an [EAS Update](https://docs.expo.dev/eas-update/introduction/) (OTA) to it
+## Branches
 
-### Deployment
+Each assessment step is its own branch, cut from the previous step.
 
-We would like to see not only the application code but also iOS and Android builds
+- `step-1-product-screen` builds the layout from an in-memory catalog.
+- `step-2-redux-toolkit` moves interaction state into Redux Toolkit.
+- `step-3-remote-catalog` loads `data/catalog.json` over HTTP.
+- `step-4-account` adds My Account.
+- `step-5-tests` adds this suite and this runbook.
+- `step-6-eas` adds the EAS Build and EAS Update configuration.
 
-### Wrapping up
+## EAS Build and updates
 
-In the README file, we should be able to find all the information necessary to run the project, the different challenges, and the test. Documentation is highly important for the resolution of this test.
+`eas.json` has `development`, `preview`, and `production` profiles. Each profile receives `EXPO_PUBLIC_CATALOG_URL`, so a cloud build still loads the catalog. `runtimeVersion` follows the app version in `app.json`, which is what an OTA update must match. No tokens are committed.
 
+These commands need an Expo account. They were not run in this workspace because no Expo login is available here.
 
-### Delivery
+```bash
+npx eas-cli login
+npx eas-cli init
+npx eas-cli update:configure
+npx eas-cli build -p ios --profile preview
+npx eas-cli build -p android --profile preview
+npx eas-cli update --branch preview --message "Catalog update"
+```
 
-If your repository is private, please share it with @daniel-rosiak & @white-space-dev
+`eas init` writes `extra.eas.projectId`. `eas update:configure` writes `updates.url`. After the binaries exist, `eas update` publishes a JavaScript update onto that runtime. Build URLs from the Expo dashboard can be pasted below once those commands succeed.
+
+After login, print the resolved preview profile with:
+
+```bash
+npx eas-cli config -p ios -e preview --non-interactive
+```
+
+## Challenges
+
+- The repository already contained the brief, so the Expo app was scaffolded beside it and moved to the root.
+- GitHub's raw CDN cached a 404 for a few minutes after the catalog file was first requested. The file is the one on `step-3-remote-catalog`.
+- The brief supplies one layout image, so the shirt photos are Unsplash URLs. The red and navy shots are crops of a single product photo.
+- A private repository's raw URL is not reachable from the app. This repository is public, which is what makes the stand-in URL work.
+
+## Delivery
+
+Share a private fork with @daniel-rosiak and @white-space-dev.

@@ -1,0 +1,32 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "distribution": "internal",
+      "environment": "development",
+      "env": {
+        "EXPO_PUBLIC_CATALOG_URL": "https://raw.githubusercontent.com/amit-tutu22/react-native-developer/step-3-remote-catalog/data/catalog.json"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_CATALOG_URL": "https://raw.githubusercontent.com/amit-tutu22/react-native-developer/step-3-remote-catalog/data/catalog.json"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_CATALOG_URL": "https://raw.githubusercontent.com/amit-tutu22/react-native-developer/step-3-remote-catalog/data/catalog.json"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
